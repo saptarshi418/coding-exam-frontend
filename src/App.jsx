@@ -1,0 +1,14 @@
+import './App.css'
+
+function App() {
+
+  return (
+    <div>
+      <h1 className='text-xl text-red-600'>Hello world</h1>
+      <button type="button" class="btn btn-primary">Primary</button>
+
+    </div>
+  )
+}
+
+export default App
