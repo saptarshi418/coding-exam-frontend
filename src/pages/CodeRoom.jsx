@@ -10,16 +10,14 @@ const CodeRoom = () => {
 
   const [contest, setContest] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [code, setCode] = useState("");
+  const [codes, setCodes] = useState([]);
   const [language, setLanguage] = useState("python");
-  const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
 
   const videoRef = useRef(null);
 
-  // ✅ Correct mapping for Judge0 CE
   const judge0LangMap = {
     python: 71,
     java: 62,
@@ -27,16 +25,14 @@ const CodeRoom = () => {
     c: 50,
   };
 
-  // ✅ Correct Judge0 CE host & key
   const JUDGE0_URL =
     "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true";
   const judge0Headers = {
     "content-type": "application/json",
     "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-    "X-RapidAPI-Key": "a99ec05a28msh63a8db0ba6173c6p16dab8jsn4cb08657333f",
+    "X-RapidAPI-Key": "a99ec05a28msh63a8db0ba6173c6p16dab8jsn4cb08657333f", // <-- replace with your key
   };
 
-  // ✅ Fetch contest once
   useEffect(() => {
     const fetchContest = async () => {
       try {
@@ -46,15 +42,14 @@ const CodeRoom = () => {
           submitted: false,
         }));
         setContest({ ...res.data, questions: updated });
+        setCodes(new Array(updated.length).fill(""));
 
-        // Timer setup
         const startTime = new Date(res.data.start_time);
         const endTime = new Date(
           startTime.getTime() + res.data.duration * 60000
         );
         const now = new Date();
-        const remaining = endTime - now;
-        setTimeLeft(remaining);
+        setTimeLeft(endTime - now);
 
         const interval = setInterval(() => {
           const now = new Date();
@@ -62,7 +57,7 @@ const CodeRoom = () => {
           if (diff <= 0) {
             clearInterval(interval);
             toast.info("Time's up! Submitting...");
-            handleEndContest();
+            handleSubmitAll();
           } else {
             setTimeLeft(diff);
           }
@@ -77,7 +72,6 @@ const CodeRoom = () => {
     fetchContest();
   }, [id]);
 
-  // ✅ Webcam
   useEffect(() => {
     const setupWebcam = async () => {
       try {
@@ -92,7 +86,6 @@ const CodeRoom = () => {
     setupWebcam();
   }, []);
 
-  // ✅ Timer formatter
   const formatTimeLeft = (ms) => {
     if (ms <= 0) return "00:00";
     const s = Math.floor(ms / 1000);
@@ -101,23 +94,39 @@ const CodeRoom = () => {
     return `${m}:${sec}`;
   };
 
-  // ✅ Run code with custom input
   const handleRunCode = async () => {
     if (!contest) return;
     setLoading(true);
+    setOutput("");
     try {
       const langId = judge0LangMap[language];
       if (!langId) throw new Error("Unsupported lang");
 
-      const res = await axios.post(
-        JUDGE0_URL,
-        { source_code: code, language_id: langId, stdin: input },
-        { headers: judge0Headers }
-      );
-      const result = res.data;
-      const out =
-        result.stdout || result.stderr || result.compile_output || "No output.";
-      setOutput(out.trim());
+      const question = contest.questions[currentQuestionIndex];
+      let results = [];
+
+      for (const [i, tc] of question.test_cases.entries()) {
+        const res = await axios.post(
+          JUDGE0_URL,
+          {
+            source_code: codes[currentQuestionIndex],
+            language_id: langId,
+            stdin: tc.input,
+          },
+          { headers: judge0Headers }
+        );
+        const result = res.data;
+        const out = (result.stdout || "").trim();
+        const expected = tc.expected_output.trim();
+        const passed = out === expected;
+        results.push(
+          `Test ${i + 1}: ${passed ? "✅ Passed" : "❌ Failed"}\nInput: ${
+            tc.input
+          }\nOutput: ${out}\nExpected: ${expected}\n`
+        );
+      }
+
+      setOutput(results.join("\n"));
     } catch (err) {
       console.error(err);
       toast.error("Judge0 error");
@@ -126,78 +135,44 @@ const CodeRoom = () => {
     }
   };
 
-  // ✅ Submit all test cases, only once
-  const handleSubmitCode = async () => {
+  const handleSubmitAll = async () => {
     if (!contest) return;
-    const question = contest.questions[currentQuestionIndex];
-    if (question.submitted) {
-      toast.info("Already submitted");
-      return;
-    }
-
     setLoading(true);
     try {
-      const langId = judge0LangMap[language];
-      if (!langId) throw new Error("Unsupported lang");
-
-      let allPass = true;
-
-      for (const [i, tc] of question.test_cases.entries()) {
-        const res = await axios.post(
-          JUDGE0_URL,
-          { source_code: code, language_id: langId, stdin: tc.input },
-          { headers: judge0Headers }
-        );
-        const result = res.data;
-        const out = (result.stdout || "").trim();
-        if (out === tc.expected_output.trim()) {
-          toast.success(`✅ Test ${i + 1} Passed`);
-        } else {
-          toast.error(`❌ Test ${i + 1} Failed`);
-          allPass = false;
-        }
-      }
-
-      if (allPass) {
-        await axios.post(`contests/${id}/submit/`, {
-          code,
-          language,
-          question_id: question.id,
-        });
-        toast.success("✅ All passed! Submitted.");
-
-        const updated = [...contest.questions];
-        updated[currentQuestionIndex].submitted = true;
-        setContest({ ...contest, questions: updated });
-      } else {
-        toast.info("Fix errors & retry");
-      }
+      const payload = {
+        submissions: contest.questions.map((q, i) => ({
+          question_id: q.id,
+          language: language,
+          code: codes[i],
+        })),
+      };
+      await axios.post(`contests/${id}/submit-all/`, payload);
+      toast.success("✅ All questions submitted!");
+      navigate("/contests");
     } catch (err) {
       console.error(err);
-      toast.error("Submit failed");
+      toast.error("Submit all failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Nav handlers
   const handlePrev = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
-      setCode("");
       setOutput("");
     }
   };
+
   const handleNext = () => {
     if (currentQuestionIndex < contest.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setCode("");
       setOutput("");
     }
   };
+
   const handleEndContest = () => {
-    toast.info("Contest ended.");
-    navigate("/contests");
+    handleSubmitAll();
   };
 
   if (!contest) {
@@ -210,7 +185,6 @@ const CodeRoom = () => {
 
   return (
     <div className="min-h-screen bg-[#1A1A2E] text-[#E0E0E0] p-4 flex flex-col">
-      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="text-xl font-bold">{contest.title}</div>
         <div className="text-md font-mono bg-[#1F4068] px-4 py-1 rounded">
@@ -219,7 +193,6 @@ const CodeRoom = () => {
       </div>
 
       <div className="flex flex-1 gap-4">
-        {/* Left */}
         <div className="w-1/4 bg-[#1F4068] p-4 rounded space-y-4">
           <h2 className="font-bold">Question</h2>
           <p>{question.title}</p>
@@ -234,14 +207,17 @@ const CodeRoom = () => {
           ))}
         </div>
 
-        {/* Center */}
         <div className="w-2/4 flex flex-col space-y-4">
           <Editor
             height="400px"
             language={language === "cpp" ? "cpp" : language}
             theme="vs-dark"
-            value={code}
-            onChange={(v) => setCode(v)}
+            value={codes[currentQuestionIndex]}
+            onChange={(v) => {
+              const newCodes = [...codes];
+              newCodes[currentQuestionIndex] = v;
+              setCodes(newCodes);
+            }}
             options={{ fontSize: 14, minimap: { enabled: false } }}
           />
           <textarea
@@ -269,7 +245,6 @@ const CodeRoom = () => {
           </div>
         </div>
 
-        {/* Right */}
         <div className="w-1/4 space-y-4">
           <video
             ref={videoRef}
@@ -287,16 +262,9 @@ const CodeRoom = () => {
             <option value="java">Java</option>
             <option value="c">C</option>
           </select>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Custom input (optional)"
-            className="w-full h-24 p-2 rounded bg-[#1F4068] text-white"
-          />
         </div>
       </div>
 
-      {/* Footer */}
       <div className="flex justify-end gap-4 mt-4">
         <button
           onClick={handleEndContest}
@@ -310,17 +278,14 @@ const CodeRoom = () => {
         >
           {loading ? "Running..." : "Run Code"}
         </button>
-        <button
-          onClick={handleSubmitCode}
-          disabled={question.submitted}
-          className={`px-4 py-2 rounded font-bold ${
-            question.submitted
-              ? "bg-gray-500 text-white cursor-not-allowed"
-              : "bg-green-500 text-black"
-          }`}
-        >
-          {question.submitted ? "Submitted" : "Submit Code"}
-        </button>
+        {currentQuestionIndex === contest.questions.length - 1 && (
+          <button
+            onClick={handleSubmitAll}
+            className="px-4 py-2 rounded font-bold bg-green-500 text-black"
+          >
+            Submit All
+          </button>
+        )}
       </div>
     </div>
   );
