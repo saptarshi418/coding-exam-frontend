@@ -30,7 +30,7 @@ const CodeRoom = () => {
   const judge0Headers = {
     "content-type": "application/json",
     "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-    "X-RapidAPI-Key": "a99ec05a28msh63a8db0ba6173c6p16dab8jsn4cb08657333f", // <-- replace with your key
+    "X-RapidAPI-Key": "dcd2bcd14emshff3e79ab3b1fcdcp14b8b5jsn9959db0a0934",
   };
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const CodeRoom = () => {
         const res = await axios.get(`contests/contests/${id}/`);
         const updated = res.data.questions.map((q) => ({
           ...q,
-          submitted: false,
+          passedTestCases: 0, // add initial passedTestCases field
         }));
         setContest({ ...res.data, questions: updated });
         setCodes(new Array(updated.length).fill(""));
@@ -100,10 +100,11 @@ const CodeRoom = () => {
     setOutput("");
     try {
       const langId = judge0LangMap[language];
-      if (!langId) throw new Error("Unsupported lang");
+      if (!langId) throw new Error("Unsupported language");
 
       const question = contest.questions[currentQuestionIndex];
       let results = [];
+      let passedCount = 0;
 
       for (const [i, tc] of question.test_cases.entries()) {
         const res = await axios.post(
@@ -119,14 +120,20 @@ const CodeRoom = () => {
         const out = (result.stdout || "").trim();
         const expected = tc.expected_output.trim();
         const passed = out === expected;
+        if (passed) passedCount += 1;
         results.push(
-          `Test ${i + 1}: ${passed ? "✅ Passed" : "❌ Failed"}\nInput: ${
-            tc.input
+          `Test ${i + 1}: ${passed ? "✅ Passed" : "❌ Failed"}\nInput: ${tc.input
           }\nOutput: ${out}\nExpected: ${expected}\n`
         );
       }
 
+      // ✅ Save passed count back to contest state
+      const updated = [...contest.questions];
+      updated[currentQuestionIndex].passedTestCases = passedCount;
+      setContest({ ...contest, questions: updated });
+
       setOutput(results.join("\n"));
+      toast.success(`✅ Passed ${passedCount} / ${question.test_cases.length}`);
     } catch (err) {
       console.error(err);
       toast.error("Judge0 error");
@@ -137,6 +144,7 @@ const CodeRoom = () => {
 
   const handleSubmitAll = async () => {
     if (!contest) return;
+
     setLoading(true);
     try {
       const payload = {
@@ -144,8 +152,10 @@ const CodeRoom = () => {
           question_id: q.id,
           language: language,
           code: codes[i],
+          passed_test_cases: q.passedTestCases || 0,
         })),
       };
+
       await axios.post(`contests/${id}/submit-all/`, payload);
       toast.success("✅ All questions submitted!");
       navigate("/contests");
