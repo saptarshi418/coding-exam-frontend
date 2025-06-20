@@ -159,7 +159,7 @@ const CodeRoom = () => {
       }
 
       if (allPass) {
-        await axios.post(`${id}/submit/`, {
+        await axios.post(`contests/${id}/submit/`, {
           code,
           language,
           question_id: question.id,
