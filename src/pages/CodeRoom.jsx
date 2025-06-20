@@ -3,6 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 import { toast } from "react-toastify";
 import Editor from "@monaco-editor/react";
+import Modal from "react-modal"; // ✅ New: use react-modal
+
+Modal.setAppElement("#root"); // required for accessibility
 
 const CodeRoom = () => {
   const { id } = useParams();
@@ -15,6 +18,9 @@ const CodeRoom = () => {
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
 
   const videoRef = useRef(null);
 
@@ -39,7 +45,7 @@ const CodeRoom = () => {
         const res = await axios.get(`contests/contests/${id}/`);
         const updated = res.data.questions.map((q) => ({
           ...q,
-          passedTestCases: 0, // add initial passedTestCases field
+          submitted: false,
         }));
         setContest({ ...res.data, questions: updated });
         setCodes(new Array(updated.length).fill(""));
@@ -100,7 +106,7 @@ const CodeRoom = () => {
     setOutput("");
     try {
       const langId = judge0LangMap[language];
-      if (!langId) throw new Error("Unsupported language");
+      if (!langId) throw new Error("Unsupported lang");
 
       const question = contest.questions[currentQuestionIndex];
       let results = [];
@@ -127,13 +133,12 @@ const CodeRoom = () => {
         );
       }
 
-      // ✅ Save passed count back to contest state
-      const updated = [...contest.questions];
-      updated[currentQuestionIndex].passedTestCases = passedCount;
-      setContest({ ...contest, questions: updated });
+      // ✅ Save passed count for this question
+      const updatedQuestions = [...contest.questions];
+      updatedQuestions[currentQuestionIndex].passedTestCases = passedCount;
+      setContest({ ...contest, questions: updatedQuestions });
 
       setOutput(results.join("\n"));
-      toast.success(`✅ Passed ${passedCount} / ${question.test_cases.length}`);
     } catch (err) {
       console.error(err);
       toast.error("Judge0 error");
@@ -156,9 +161,16 @@ const CodeRoom = () => {
         })),
       };
 
-      await axios.post(`contests/${id}/submit-all/`, payload);
-      toast.success("✅ All questions submitted!");
-      navigate("/contests");
+      const res = await axios.post(`contests/${id}/submit-all/`, payload);
+      const total = res.data.total_score;
+      setFinalScore(total);
+      setModalIsOpen(true);
+
+      // After short delay, go back to contests page:
+      setTimeout(() => {
+        navigate("/contests");
+      }, 5000);
+
     } catch (err) {
       console.error(err);
       toast.error("Submit all failed");
@@ -297,6 +309,26 @@ const CodeRoom = () => {
           </button>
         )}
       </div>
+
+      {/* ✅ Score Modal */}
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={() => setModalIsOpen(false)}
+        className="bg-white rounded-lg p-8 w-1/3 mx-auto mt-40 text-center"
+      >
+        <h2 className="text-xl font-bold mb-4">🎉 Contest Submitted!</h2>
+        <p>Your Total Score: <b>{finalScore}</b></p>
+        <p>Redirecting to contests page...</p>
+        <button
+          onClick={() => {
+            setModalIsOpen(false);
+            navigate("/contests");
+          }}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Close Now
+        </button>
+      </Modal>
     </div>
   );
 };

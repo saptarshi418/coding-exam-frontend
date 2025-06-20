@@ -11,9 +11,15 @@ const Navbar = () => {
 
   return (
     <nav className="flex justify-between items-center p-4 bg-blue-600 text-white">
-      <h1 className="text-xl font-bold">
-        <Link to="/">Coding Platform</Link>
-      </h1>
+      <div className="flex" style={{ gap: '20px' }}>
+        <h1 className="text-xl font-bold">
+          <Link to="/">Coding Platform</Link>
+        </h1>
+        |
+        <h3 className="text-xl font-bold">
+          <Link to="/contests">View contests</Link>
+        </h3>
+      </div>
 
       <div className="relative">
         {isAuthenticated ? (
