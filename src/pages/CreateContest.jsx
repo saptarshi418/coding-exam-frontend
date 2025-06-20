@@ -168,7 +168,7 @@ const CreateContest = () => {
                   className="w-full p-2 rounded border border-gray-300 text-gray-600"
                   required
                 />
-                <input
+                <textarea
                   type="text"
                   name="expected_output"
                   value={tc.expected_output}

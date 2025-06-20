@@ -3,8 +3,8 @@ import { FaGithub, FaLinkedin } from 'react-icons/fa';
 
 const creators = [
   {
-    name: 'Alice Johnson',
-    role: 'Frontend Developer',
+    name: 'Animesh Chakrabarty',
+    role: 'Software Developer',
     description:
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean mattis, nulla in lacinia luctus, sem sapien convallis metus.',
     github: '#',
@@ -12,7 +12,7 @@ const creators = [
     img: 'https://via.placeholder.com/100',
   },
   {
-    name: 'Bob Smith',
+    name: 'Saptarshi Ghosh',
     role: 'Backend Developer',
     description:
       'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.',
@@ -21,8 +21,8 @@ const creators = [
     img: 'https://via.placeholder.com/100',
   },
   {
-    name: 'Charlie Davis',
-    role: 'UI/UX Designer',
+    name: 'Gaurab Kundu',
+    role: 'Data Analyst',
     description:
       'Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam.',
     github: '#',
@@ -30,7 +30,7 @@ const creators = [
     img: 'https://via.placeholder.com/100',
   },
   {
-    name: 'Diana Prince',
+    name: 'Akash Maity',
     role: 'Project Manager',
     description:
       'Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.',
@@ -39,7 +39,7 @@ const creators = [
     img: 'https://via.placeholder.com/100',
   },
   {
-    name: 'Ethan Clarke',
+    name: 'Samarjit Bag',
     role: 'ML Engineer',
     description:
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis vitae suscipit lorem. Nullam feugiat ligula in urna dignissim.',
@@ -48,7 +48,7 @@ const creators = [
     img: 'https://via.placeholder.com/100',
   },
   {
-    name: 'Fiona Lee',
+    name: 'Debjyoti Ghosh',
     role: 'DevOps Engineer',
     description:
       'Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
@@ -78,16 +78,25 @@ const Home = () => {
             About the Platform
           </h2>
           <p className="text-base leading-relaxed">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed viverra quam quis lorem
-            luctus, id ultrices magna ultricies. Fusce euismod quam nec neque bibendum finibus.
-            Curabitur et velit et felis feugiat interdum non et orci. Pellentesque habitant morbi
-            tristique senectus et netus et malesuada fames ac turpis egestas.
-          </p>
+            Welcome to CodeGuard — an innovative online coding contest platform designed to challenge your skills, ignite your creativity, and prepare you for real-world problem-solving.
+
+            
+            </p>
+            <p className="text-base leading-relaxed">
+              At CodeArena, we connect passionate programmers and organizations through fair, secure, and dynamic coding competitions. Whether you’re a student, a professional, or a company looking to discover top tech talent, our platform provides a seamless experience — from creating contests to live coding and automated cheating detection.
+
+
+            </p>
+            <p className="text-base leading-relaxed">
+              Our mission is to empower the next generation of developers by providing a competitive, transparent, and rewarding environment. We believe coding should be fun, challenging, and accessible to everyone — anytime, anywhere.
+
+
+            </p>
         </section>
 
         {/* Creators Section */}
         <section>
-          <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-[#FF6B6B]">
+          <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-[#6BFF6B]">
             Meet the Creators
           </h2>
           <div className="grid md:grid-cols-3 gap-8">

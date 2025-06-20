@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "../api/axios";
+import axios from "../api/axios"; // ✅ uses the updated instance with interceptor
 import { toast } from "react-toastify";
 
 const WaitingRoom = () => {
@@ -15,7 +15,19 @@ const WaitingRoom = () => {
   useEffect(() => {
     const fetchContest = async () => {
       try {
-        const response = await axios.get(`contests/${id}/`);
+        // ✅ Log for debugging
+        const token = localStorage.getItem("accessToken");
+        console.log("Access token (should not be null):", token);
+
+        if (!token) {
+          toast.error("You are not logged in. Please login first.");
+          navigate("/login");
+          return;
+        }
+
+        const response = await axios.get(`contests/contests/${id}/`);
+        console.log("Contest fetched:", response.data);
+
         const startTime = new Date(response.data.start_time);
         const now = new Date();
         const diff = startTime - now;
@@ -30,7 +42,7 @@ const WaitingRoom = () => {
 
           if (diff <= 0) {
             clearInterval(interval);
-            soundRef.current.play();
+            soundRef.current?.play();
             toast.success("Contest started!");
             navigate(`/code-room/${id}`);
           } else {
@@ -40,6 +52,7 @@ const WaitingRoom = () => {
 
         return () => clearInterval(interval);
       } catch (err) {
+        console.error("Error fetching contest:", err);
         toast.error("Failed to fetch contest details.");
       }
     };
@@ -71,11 +84,17 @@ const WaitingRoom = () => {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-  if (!contest) return <div className="p-6 text-center text-gray-300">Loading contest...</div>;
+  if (!contest) {
+    return (
+      <div className="p-6 text-center text-gray-300">Loading contest...</div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#1A1A2E] text-[#E0E0E0] p-6 flex flex-col items-center justify-center gap-8">
-      <h1 className="text-3xl font-bold text-center">Waiting for "{contest.title}" to Start</h1>
+      <h1 className="text-3xl font-bold text-center">
+        Waiting for "{contest.title}" to Start
+      </h1>
 
       {/* Circular Countdown Timer */}
       <div className="relative w-48 h-48">
